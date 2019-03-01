@@ -1,5 +1,16 @@
 version: '3'
 services:
+  traefik:
+    image: traefik 
+    command: --api --docker
+    ports:
+      - "10080:80"   
+      - "10433:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock 
+      - ./conf/traefik.toml:/etc/traefik/traefik.toml
+      - ./conf/acme.json:/acme.json
   nginx: 
     image: nginx:latest
     container_name: production_nginx
@@ -7,11 +18,14 @@ services:
       - ./conf/nginx.conf:/etc/nginx/nginx.conf
       - /etc/letsencrypt/:/etc/letsencrypt/
     ports:
-      - 80:80
       - 443:443
       - 9701:8080
   netdata:
     image: netdata/netdata
+    labels:
+      - "traefik.enable=true"
+      - "traefik.basic.port=19999"
+      - "traefik.frontend.rule=Host:netdata.earthonline.tk"
     expose:
       - "19999"
     cap_add:
@@ -24,14 +38,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
   v2ray1:
     image: v2ray/official:latest 
+    expose:
+      - "8001"
     volumes:
       - /etc/v2ray:/etc/v2ray
   v2ray2:
     image: v2ray/official:latest 
+    expose:
+      - "8001"
     volumes:
       - /etc/v2ray:/etc/v2ray
-
-
 
   update:
     image: v2tec/watchtower
